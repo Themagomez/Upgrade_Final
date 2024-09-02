@@ -686,7 +686,7 @@ if selection == "Portfolio Comparison":
     st.write("This page compares the volatility of different portfolios against the S&P 500 index.")
     
     # Loading S&P 500 data for comparison with retry mechanism
-    sp500_data = load_data('^GSPC', start_date, end_date, progress=False)
+    sp500_data = load_data('^GSPC', start_date, end_date)
     
     if sp500_data is None or sp500_data.empty:
         st.error("Failed to load S&P 500 data. Please check your connection or try again later.")
