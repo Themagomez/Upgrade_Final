@@ -6,9 +6,6 @@ import numpy as np
 import matplotlib.pyplot as plt
 from sklearn.linear_model import LinearRegression
 from datetime import datetime, timedelta
-from prophet import Prophet
-from prophet.serialize import model_to_json, model_from_json
-model = Prophet(stan_backend='CMDSTANPY')
 
 # Set the start and end date for 3-year historical data
 end_date = datetime.now()
@@ -16,7 +13,7 @@ start_date = end_date - timedelta(days=3*365)
 
 # Sidebar for navigation
 st.sidebar.title("Navigation")
-pages = ["Introduction", "S&P 500", "Sector Analysis", "Stock Analysis", "Portfolio Comparison", "3-Year Prediction", "S&P 500 Prediction"]
+pages = ["Introduction", "S&P 500", "Sector Analysis", "Stock Analysis", "Portfolio Comparison", "3-Year Prediction"]
 selection = st.sidebar.radio("Go to", pages)
 
 # Data loading function
@@ -871,61 +868,4 @@ if selection == "3-Year Prediction":
         )
 
 
-# S&P 500 Prediction Page
-if selection == "S&P 500 Prediction":
-    st.title("S&P 500 3-Year Prediction using Prophet")
-    
-    # Load S&P 500 data
-    sp500 = load_data('^GSPC', start_date, end_date)
-    
-    if sp500 is None or sp500.empty:
-        st.error("Failed to load S&P 500 data. Please check your connection or try again later.")
-    else:
-        # Preparing the data for Prophet
-        df = sp500[['Close']].reset_index()
-        df.rename(columns={'Date': 'ds', 'Close': 'y'}, inplace=True)
-        
-        # Fit the Prophet model
-        model = Prophet(daily_seasonality=False)
-        model.fit(df)
-        
-        # Making a future dataframe for the next 3 years
-        future = model.make_future_dataframe(periods=3*365)
-        forecast = model.predict(future)
-        
-        # Plotting the forecast
-        fig1 = model.plot(forecast)
-        plt.title("S&P 500 Forecast for the Next 3 Years")
-        plt.xlabel("Date")
-        plt.ylabel("S&P 500 Value")
-        st.pyplot(fig1)
-        
-        # Plotting forecast components
-        fig2 = model.plot_components(forecast)
-        st.pyplot(fig2)
-        
-        # Improving the table headers
-        forecast_table = forecast[['ds', 'yhat', 'yhat_lower', 'yhat_upper']].rename(
-            columns={
-                'ds': 'Date',
-                'yhat': 'Predicted Value',
-                'yhat_lower': 'Lower Bound',
-                'yhat_upper': 'Upper Bound'
-            }
-        )
-        
-        st.write("Forecasted S&P 500 values:")
-        st.write(forecast_table.tail())
 
-        # footnote explaining the Prophet model
-        st.markdown(
-            """
-            **Footnote:**
-            
-            The S&P 500 value predictions are generated using the Prophet model developed by Facebook. Prophet is a time series forecasting 
-            model that is particularly effective for data with daily observations that display seasonality and other trends. The model fits 
-            historical data and forecasts future values while also providing confidence intervals for the predictions. It’s important to note 
-            that while the model accounts for trends and patterns in the data, unforeseen market events and changes in economic conditions 
-            can significantly impact actual future S&P 500 values.
-            """
-        )
