@@ -691,86 +691,85 @@ if selection == "Portfolio Comparison":
     if sp500_data is None or sp500_data.empty:
         st.error("Failed to load S&P 500 data. Please check your connection or try again later.")
     else:
-        # Calculate S&P 500 returns
+        # Calculate S&P 500 returns and cumulative returns
         sp500_returns = sp500_data['Close'].pct_change().dropna()
+        sp500_cumulative_returns = (1 + sp500_returns).cumprod() - 1
 
-    # Step 1: Calculate the volatility of each stock with error handling
-    volatilities = {}
-    for ticker in sp500_companies:
-        data = load_data(ticker, start_date, end_date)
-        if data is not None:
-            volatility = data['Close'].pct_change().std() * np.sqrt(252)  # Annualized volatility
-            volatilities[ticker] = volatility
-    
-    if not volatilities:
-        st.error("No valid data available for any tickers.")
-    else:
-        # Step 2: Sort stocks by volatility
-        sorted_volatilities = sorted(volatilities.items(), key=lambda x: x[1], reverse=True)
-        
-        # Step 3: Define portfolios
-        aggressive_portfolio = [ticker for ticker, vol in sorted_volatilities[:5]]  # Top 5 most volatile
-        
-        low_risk_portfolio = [ticker for ticker, vol in sorted_volatilities[-100:]]  # Bottom 100 least volatile
-        
-        diversified_portfolio = []
-        sectors = list(set([sp500_companies[ticker][1] for ticker in sp500_companies]))  # Unique sectors
-        for sector in sectors:
-            sector_stocks = [(ticker, vol) for ticker, vol in sorted_volatilities if sp500_companies[ticker][1] == sector]
-            diversified_portfolio += [ticker for ticker, vol in sector_stocks[:2]]  # Top 2 in volatility
-            diversified_portfolio += [ticker for ticker, vol in sector_stocks[-2:]]  # Bottom 2 in volatility
-        
-        # Step 4: Loading data for the portfolios, calculating returns, CAGR, and volatilities
-        portfolio_data = {
-            "Aggressive": aggressive_portfolio,
-            "Low-Risk": low_risk_portfolio,
-            "Diversified": diversified_portfolio
-        }
-        
-        for portfolio_name, tickers in portfolio_data.items():
-            portfolio_returns = []
-            valid_tickers = []
-            for ticker in tickers:
-                data = load_data(ticker, start_date, end_date)
-                if data is not None:
-                    returns = data['Close'].pct_change()
-                    portfolio_returns.append(returns)
-                    valid_tickers.append(ticker)
+        # Step 1: Calculate the volatility of each stock with error handling
+        volatilities = {}
+        for ticker in sp500_companies:
+            data = load_data(ticker, start_date, end_date)
+            if data is not None:
+                volatility = data['Close'].pct_change().std() * np.sqrt(252)  # Annualized volatility
+                volatilities[ticker] = volatility
+
+        if not volatilities:
+            st.error("No valid data available for any tickers.")
+        else:
+            # Step 2: Sort stocks by volatility
+            sorted_volatilities = sorted(volatilities.items(), key=lambda x: x[1], reverse=True)
             
-            if portfolio_returns:
-                combined_returns = pd.concat(portfolio_returns, axis=1).mean(axis=1)  # Average returns for the portfolio
-                cumulative_returns = (1 + combined_returns).cumprod() - 1
+            # Step 3: Define portfolios
+            aggressive_portfolio = [ticker for ticker, vol in sorted_volatilities[:5]]  # Top 5 most volatile
+            low_risk_portfolio = [ticker for ticker, vol in sorted_volatilities[-100:]]  # Bottom 100 least volatile
+            
+            diversified_portfolio = []
+            sectors = list(set([sp500_companies[ticker][1] for ticker in sp500_companies]))  # Unique sectors
+            for sector in sectors:
+                sector_stocks = [(ticker, vol) for ticker, vol in sorted_volatilities if sp500_companies[ticker][1] == sector]
+                diversified_portfolio += [ticker for ticker, vol in sector_stocks[:2]]  # Top 2 in volatility
+                diversified_portfolio += [ticker for ticker, vol in sector_stocks[-2:]]  # Bottom 2 in volatility
+            
+            # Step 4: Loading data for the portfolios, calculating returns, CAGR, and volatilities
+            portfolio_data = {
+                "Aggressive": aggressive_portfolio,
+                "Low-Risk": low_risk_portfolio,
+                "Diversified": diversified_portfolio
+            }
+            
+            for portfolio_name, tickers in portfolio_data.items():
+                portfolio_returns = []
+                valid_tickers = []
+                for ticker in tickers:
+                    data = load_data(ticker, start_date, end_date)
+                    if data is not None:
+                        returns = data['Close'].pct_change().dropna()
+                        portfolio_returns.append(returns)
+                        valid_tickers.append(ticker)
                 
-                # Calculating portfolio statistics
-                total_return = cumulative_returns[-1]
-                cagr = (1 + total_return) ** (1 / 3) - 1  # Assuming 3-year period
-                portfolio_volatility = combined_returns.std() * np.sqrt(252)  # Annualized volatility
-                
-                # Plotting portfolio and S&P 500 performance
-                plt.figure(figsize=(10, 6))
-                plt.plot(cumulative_returns.index, cumulative_returns, label=f"{portfolio_name} Portfolio")
-                if sp500_cumulative_returns is not None:
+                if portfolio_returns:
+                    combined_returns = pd.concat(portfolio_returns, axis=1).mean(axis=1)  # Average returns for the portfolio
+                    cumulative_returns = (1 + combined_returns).cumprod() - 1
+                    
+                    # Calculating portfolio statistics
+                    total_return = cumulative_returns[-1]
+                    cagr = (1 + total_return) ** (1 / 3) - 1  # Assuming 3-year period
+                    portfolio_volatility = combined_returns.std() * np.sqrt(252)  # Annualized volatility
+                    
+                    # Plotting portfolio and S&P 500 performance
+                    plt.figure(figsize=(10, 6))
+                    plt.plot(cumulative_returns.index, cumulative_returns, label=f"{portfolio_name} Portfolio")
                     plt.plot(sp500_cumulative_returns.index, sp500_cumulative_returns, label="S&P 500", color='yellow')
-                plt.title(f"{portfolio_name} Portfolio vs S&P 500")
-                plt.xlabel("Date")
-                plt.ylabel("Cumulative Returns")
-                plt.legend()
-                plt.tight_layout()
-                st.pyplot(plt)
-                
-                # Displaying portfolio statistics in a table
-                summary_data = {
-                    "Tickers": [', '.join(valid_tickers)],
-                    "Total Return (%)": [f"{total_return * 100:.2f}%"],
-                    "CAGR (%)": [f"{cagr * 100:.2f}%"],
-                    "Volatility": [f"{portfolio_volatility:.4f}"]
-                }
-                
-                summary_df = pd.DataFrame(summary_data)
-                
-                st.subheader(f"{portfolio_name} Portfolio Summary")
-                st.table(summary_df)
-
+                    plt.title(f"{portfolio_name} Portfolio vs S&P 500")
+                    plt.xlabel("Date")
+                    plt.ylabel("Cumulative Returns")
+                    plt.legend()
+                    plt.tight_layout()
+                    st.pyplot(plt)
+                    
+                    # Displaying portfolio statistics in a table
+                    summary_data = {
+                        "Tickers": [', '.join(valid_tickers)],
+                        "Total Return (%)": [f"{total_return * 100:.2f}%"],
+                        "CAGR (%)": [f"{cagr * 100:.2f}%"],
+                        "Volatility": [f"{portfolio_volatility:.4f}"]
+                    }
+                    
+                    summary_df = pd.DataFrame(summary_data)
+                    
+                    st.subheader(f"{portfolio_name} Portfolio Summary")
+                    st.table(summary_df)
+                    
 # Portfolio Comparison Portfolios (reused here)
 def get_portfolios():
     volatilities = {}
