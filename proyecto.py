@@ -687,8 +687,12 @@ if selection == "Portfolio Comparison":
     
     # Loading S&P 500 data for comparison
     sp500_data = load_data('^GSPC', start_date, end_date)
-    sp500_returns = sp500_data['Close'].pct_change()
-    sp500_cumulative_returns = (1 + sp500_returns).cumprod() - 1 if sp500_data is not None else None
+    
+    if sp500_data is None or sp500_data.empty:
+        st.error("Failed to load S&P 500 data. Please check your connection or try again later.")
+    else:
+        # Calculate S&P 500 returns
+        sp500_returns = sp500_data['Close'].pct_change().dropna()
 
     # Step 1: Calculate the volatility of each stock with error handling
     volatilities = {}
