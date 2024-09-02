@@ -20,7 +20,7 @@ selection = st.sidebar.radio("Go to", pages)
 @st.cache_data
 def load_data(ticker, start, end):
     try:
-        data = yf.download(ticker, start=start, end=end, progress=False)
+        data = yf.download(ticker, start=start, end=end)
         if data.empty:
             raise ValueError(f"No data found for {ticker}")
         return data
