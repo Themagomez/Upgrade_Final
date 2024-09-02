@@ -7,6 +7,8 @@ import matplotlib.pyplot as plt
 from sklearn.linear_model import LinearRegression
 from datetime import datetime, timedelta
 from prophet import Prophet
+from prophet.serialize import model_to_json, model_from_json
+model = Prophet(stan_backend='CMDSTANPY')
 
 # Set the start and end date for 3-year historical data
 end_date = datetime.now()
