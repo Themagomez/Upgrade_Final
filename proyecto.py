@@ -19,10 +19,14 @@ selection = st.sidebar.radio("Go to", pages)
 # Data loading function
 @st.cache_data
 def load_data(ticker, start, end):
-    data = yf.download(ticker, start=start, end=end)
-    if data.empty:
-        st.error(f"Failed to load data for {ticker}.")
-    return data
+    try:
+        data = yf.download(ticker, start=start, end=end, progress=False)
+        if data.empty:
+            raise ValueError(f"No data found for {ticker}")
+        return data
+    except Exception as e:
+        st.error(f"Failed to load data for {ticker}: {e}")
+        return None
 
 # Introduction Page
 if selection == "Introduction":
