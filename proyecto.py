@@ -424,7 +424,6 @@ sp500_companies = {
     'DOV': ['Dover Corporation', 'Industrials'],
     'KEYS': ['Keysight Technologies Inc.', 'Information Technology'],
     'ETSY': ['Etsy Inc.', 'Consumer Discretionary'],
-    'SIVB': ['SVB Financial Group', 'Financials'],
     'CE': ['Celanese Corporation', 'Materials'],
     'BWA': ['BorgWarner Inc.', 'Consumer Discretionary'],
     'MOS': ['Mosaic Company', 'Materials'],
